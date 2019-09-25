@@ -5,6 +5,8 @@ import os
 from os import path, remove
 from os.path import abspath
 import shutil
+from io import StringIO, BytesIO
+from enum import Enum
 
 
 class FileHelper(object):
@@ -78,7 +80,8 @@ class FileHelper(object):
     @classmethod
     def move_file(cls, src_file, dst_file):
         """
-        warning: dst_file that will be replaced of src_file no matter dst_file exists or not.
+        .. warning:: dst_file that will be replaced of src_file no matter dst_file exists or not.
+
         :param src_file:
         :param dst_file:
         :return:
@@ -99,7 +102,8 @@ class FileHelper(object):
     @classmethod
     def get_file_path(cls, file):
         """
-        purpose: to get filename which name is too long
+        to get filename which name is too long
+
         :param file: abspath
         :return:
         """
@@ -136,9 +140,6 @@ class FileHelper(object):
                         list_replace_mapping=(('[', '☶'), (']', '☲'),),
                         **option) -> tuple:
         """
-        Purpose
-        =========
-
         if filename that contains illegal character then will replace those character by "list_replace_mapping" to rename the file.
 
         :return
@@ -202,11 +203,95 @@ class FileHelper(object):
                     process.kill()
 
 
-class TempFile:
+class MemoryFile:
     """
     Purpose
     ==========
 
+    easier to write or read data from memory
+
+    USAGE::
+
+        import pandas as pd
+        tmp_file = MemoryFile()
+        tmp_file.write('name|age')
+        tmp_file.write('Carson|26')
+        tmp_file.writelines(['Person_1|18', 'Person_2|12'])
+        print(tmp_file.read())
+        tmp_file.io.seek(0)
+        print(tmp_file.readline())  # make sure cursor waiting position is what you want before readline
+        tmp_file.io.seek(0)
+        df = pd.read_csv(tmp_file.io, sep='|')  # must seek(0) before read_csv.
+        tmp_file.close()
+
+        with MemoryFile(MemoryFile.IoType.BYTE) as tmp_file_2:
+            tmp_file_2.write('name|age')
+            tmp_file_2.write('中文|26')
+            tmp_file_2.writelines(['Person_1|18', 'Person_2|12'])
+            print(tmp_file_2.read())
+            tmp_file_2.seek(0)
+            print(tmp_file_2.readline())
+            tmp_file_2.seek(0)
+            df = pd.read_csv(tmp_file_2.io, sep='|')
+
+            with open('temp.temp', 'wb') as f:
+                f.write(tmp_file_2.read())
+            with open('temp.temp', 'r', encoding='utf-8') as f:
+                print(f.read())
+    """
+
+    class IoType(Enum):
+        STR = 'STR'
+        BYTE = 'BYTE'
+
+    __slots__ = ['_io', '_encoding', '_mode']
+
+    def __init__(self, mode: IoType = IoType.STR, encoding='utf-8'):
+        self._encoding = encoding
+        self._io = StringIO() if mode == MemoryFile.IoType.STR else BytesIO()
+        self._mode = mode
+
+    @property
+    def io(self): return self._io
+
+    @property
+    def mode(self): return self._mode
+
+    @property
+    def encoding(self): return self._encoding
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.io.close()
+
+    def write(self, msg) -> None:
+        msg = msg+'\n'
+        if self.mode == MemoryFile.IoType.BYTE:
+            msg = msg.encode(self.encoding)
+        self.io.write(msg)
+
+    def writelines(self, list_msg: list) -> None:
+        list_msg = [line + '\n' for line in list_msg] if self.mode == MemoryFile.IoType.STR else \
+            [(line + '\n').encode(self.encoding) for line in list_msg]
+        self.io.writelines(list_msg)
+
+    def seek(self, n: int = 0):
+        return self.io.seek(n)
+
+    def readline(self):
+        return self.io.readline()[:-1]  # remove '\n'
+
+    def read(self):
+        return self.io.getvalue()
+
+    def close(self):  # release memory
+        self.io.close()
+
+
+class TempFile:
+    """
     If you need temp file and that can be auto-deleted after you aren't using it.
 
     USAGE::
@@ -217,16 +302,16 @@ class TempFile:
 
     __slots__ = ['_file', '_file_path', '_encoding', ]
 
-    def __init__(self, file_path, encoding='utf-8', ignore_error=False):
+    def __init__(self, file_path, encoding='utf-8', ignore_file_exists_error=False):
         self._file_path = abspath(file_path)
         if path.exists(self.file_path):
-            if not ignore_error:
+            if not ignore_file_exists_error:
                 raise FileExistsError(f'file:{self.file_path}')
             else:
                 remove(self.file_path)
 
         self._encoding = encoding
-        self._file = ''
+        self._file = None
 
     @property
     def encoding(self): return self._encoding
