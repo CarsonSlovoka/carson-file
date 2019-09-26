@@ -7,6 +7,7 @@ from os.path import abspath
 import shutil
 from io import StringIO, BytesIO
 from enum import Enum
+import configparser
 
 
 class FileHelper(object):
@@ -203,6 +204,33 @@ class FileHelper(object):
             os.rename(file_path, new_file_name)
 
         return new_file_name, True
+
+    @classmethod
+    def copy_config(cls, org_config) -> configparser.ConfigParser:
+        """
+        .. note:: you can assign the string to `org_config`, but its data must be able to read by ConfigParser
+
+        USAGE::
+
+            org_config = configparser.ConfigParser()
+            org_config.read([file1, file2], encoding='utf-8')
+            new_config = FileHelper.copy_config(org_config)
+
+        :param org_config: type: configparser.ConfigParser, str
+        :return:
+        """
+        if not isinstance(org_config, (configparser.ConfigParser, str)):
+            raise TypeError(f'org_config must be `configparser.ConfigParser` or `str`')
+
+        with StringIO() as memory_file:
+            if isinstance(org_config, str):
+                memory_file.write(org_config)
+            else:
+                org_config.write(memory_file)
+            memory_file.seek(0)
+            new_config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+            new_config.read_file(memory_file)
+        return new_config
 
     @staticmethod
     def kill_process(kill_name_list: typing.List[str]):

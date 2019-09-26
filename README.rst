@@ -98,6 +98,15 @@ class FileHelper
   
   rename(src_file, dst_file, ignore_file_exist_error)
 
+  copy_config(org_config) -> configparser.ConfigParser
+      .. note:: you can assign the string to `org_config`, but its data must be able to read by ConfigParser
+
+      USAGE::
+
+          org_config = configparser.ConfigParser()
+          org_config.read([file1, file2], encoding='utf-8')
+          new_config = FileHelper.copy_config(org_config)
+
   Static methods defined here:
   
   kill_process(kill_name_list: List[str])
