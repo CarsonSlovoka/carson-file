@@ -14,7 +14,14 @@ class FileHelper(object):
     def get_file_properties(cls, file) -> dict:
         """
         Read all properties of the given file and return them as a dictionary.
+
+        EXAMPLE::
+
+            prop = FileHelper.get_file_properties(r"C:\\Windows\\System32\\cmd.exe")
+            for key, value in prop['StringFileInfo'].items():
+                print(f'{key:<15} {value if value else "":<30}')
         """
+
         prop_names = ('Comments', 'InternalName', 'ProductName',
                       'CompanyName', 'LegalCopyright', 'ProductVersion',
                       'FileDescription', 'LegalTrademarks', 'PrivateBuild',
@@ -26,12 +33,12 @@ class FileHelper(object):
             fixed_info = win32api.GetFileVersionInfo(file, '\\')
             return_dict['FixedFileInfo'] = fixed_info
             return_dict['FileVersion'] = "%d.%d.%d.%d" % (fixed_info['FileVersionMS'] / 65536,
-                                                    fixed_info['FileVersionMS'] % 65536,
-                                                    fixed_info['FileVersionLS'] / 65536,
-                                                    fixed_info['FileVersionLS'] % 65536)
+                                                          fixed_info['FileVersionMS'] % 65536,
+                                                          fixed_info['FileVersionLS'] / 65536,
+                                                          fixed_info['FileVersionLS'] % 65536)
 
-            # \VarFileInfo\Translation returns list of available (language, codepage)
-            # pairs that can be used to retreive string info. We are using only the first pair.
+            # \VarFileInfo\Translation returns list of available (language, code-page)
+            # pairs that can be used to retrieve string info. We are using only the first pair.
             lang, codepage = win32api.GetFileVersionInfo(file, '\\VarFileInfo\\Translation')[0]
 
             # any other must be of the form \StringfileInfo\%04X%04X\parm_name, middle
@@ -73,7 +80,7 @@ class FileHelper(object):
                         os.makedirs(path.dirname(chk_path)) if not path.exists(path.dirname(chk_path)) else None
                     else:
                         os.makedirs(chk_path)
-        except OSError as e:
+        except OSError:
             return False
         return True
 
@@ -92,7 +99,7 @@ class FileHelper(object):
     @classmethod
     def file_path_add_prefix(cls, file, pre_fix_name) -> str:
         """
-            FileHelper.file_path_add_prefix("C:\\Test\\fileA.txt", "My_")
+            >>> FileHelper.file_path_add_prefix("C:\\Test\\fileA.txt", "My_")
             'C:\\Test\\My_fileA.txt'
         """
         dir_name = path.splitext(path.dirname(file))[0]
@@ -149,17 +156,19 @@ class FileHelper(object):
 
         :param
             is_need_rename: rename whether or not
-            option：
-                only_base_name: handle basename only
-                ignore_file_exist_error: file already exists after rename, then forced rename or not?
 
-        USAGE:
+            option:
+                - only_base_name: handle basename only
+                - ignore_file_exist_error: file already exists after rename, then forced rename or not?
+
+        USAGE::
+
             name_normalized = FileHelper.name_normalized
-            new_path, be_normalized = name_normalized("C:\\[dir]\sub_dir\my_[test].txt")
+            new_path, be_normalized = name_normalized("C:\\[dir]\\sub_dir\\my_[test].txt")
             ('C:\\☶dir☲\\sub_dir\\my_☶test☲.txt', True)
 
-            name_normalized("C:\\[dir]\sub_dir\my_[test].txt", only_base_name=True)
-            'C:\[dir]\sub_dir\my_☶test☲.txt', Ture
+            name_normalized("C:\\[dir]\\sub_dir\\my_[test].txt", only_base_name=True)
+            ('C:\\[dir]\\sub_dir\\my_☶test☲.txt', Ture)
 
             name_normalized("my_[test].txt", only_base_name=True)
             my_☶test☲.txt, True
@@ -205,9 +214,6 @@ class FileHelper(object):
 
 class MemoryFile:
     """
-    Purpose
-    ==========
-
     easier to write or read data from memory
 
     USAGE::
@@ -267,7 +273,7 @@ class MemoryFile:
         self.io.close()
 
     def write(self, msg) -> None:
-        msg = msg+'\n'
+        msg = msg + '\n'
         if self.mode == MemoryFile.IoType.BYTE:
             msg = msg.encode(self.encoding)
         self.io.write(msg)
@@ -295,6 +301,7 @@ class TempFile:
     If you need temp file and that can be auto-deleted after you aren't using it.
 
     USAGE::
+
         with TempFile('temp.temp') as tmp_f:
             tmp_f.close()  # it's only using for other programs will do something by it (Option)
             other_process(tmp_file_path)
@@ -314,13 +321,16 @@ class TempFile:
         self._file = None
 
     @property
-    def encoding(self): return self._encoding
+    def encoding(self):
+        return self._encoding
 
     @property
-    def file_path(self): return self._file_path
+    def file_path(self):
+        return self._file_path
 
     @property
-    def file(self): return self._file
+    def file(self):
+        return self._file
 
     def __enter__(self):
         self._file = open(self.file_path, 'w', encoding=self.encoding)
