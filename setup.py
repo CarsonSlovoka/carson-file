@@ -3,7 +3,7 @@ from distutils.core import setup
 with open('README.rst', encoding='utf-8') as f:
     long_description = f.read()
 
-version_number = '0.0.0'
+version_number = '0.0.1'
 
 setup(
     name='carson-file',

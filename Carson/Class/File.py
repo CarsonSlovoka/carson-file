@@ -365,7 +365,6 @@ class TempFile:
         return self.file
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print('__exit__')
         self.file.close()  # it's ok no matter whether that already closed or not.
         if path.exists(self.file_path):
             remove(self.file_path)
